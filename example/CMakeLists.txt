@@ -7,6 +7,8 @@ enable_testing()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+option(ENABLE_LOGGING "Enable logging" OFF)
+
 add_subdirectory(../ ${CMAKE_BINARY_DIR}/ARC_Cache)
 
 set(TESTS ../tests)
@@ -16,6 +18,11 @@ add_executable(arc.x ./main.cpp)
 target_link_libraries(arc.x PRIVATE arc_cache)
 
 target_include_directories(arc.x PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+
+if(ENABLE_LOGGING)
+	target_compile_definitions(arc.x PRIVATE ENABLE_LOGGING)
+	target_compile_definitions(arc_cache PRIVATE ENABLE_LOGGING)
+endif()
 
 target_compile_options(arc.x PRIVATE
 	-D_DEBUG
