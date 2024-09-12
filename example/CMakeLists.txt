@@ -2,18 +2,22 @@ cmake_minimum_required(VERSION 3.27)
 
 project(Main)
 
+enable_testing()
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 add_subdirectory(../ ${CMAKE_BINARY_DIR}/ARC_Cache)
 
-add_executable(main ./main.cpp)
+set(TESTS ../tests)
 
-target_link_libraries(main PRIVATE arc_cache)
+add_executable(arc.x ./main.cpp)
 
-target_include_directories(main PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+target_link_libraries(arc.x PRIVATE arc_cache)
 
-target_compile_options(main PRIVATE
+target_include_directories(arc.x PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+
+target_compile_options(arc.x PRIVATE
 	-D_DEBUG
 	-ggdb3
 	-O0
@@ -66,6 +70,15 @@ target_compile_options(main PRIVATE
 	-fsanitize=address,alignment,bool,bounds,enum,float-cast-overflow,float-divide-by-zero,integer-divide-by-zero,nonnull-attribute,null,return,returns-nonnull-attribute,shift,signed-integer-overflow,undefined,unreachable,vla-bound,vptr
 )
 
-target_link_options(main PRIVATE
+target_link_options(arc.x PRIVATE
 	-fsanitize=address,alignment,bool,bounds,enum,float-cast-overflow,float-divide-by-zero,integer-divide-by-zero,nonnull-attribute,null,return,returns-nonnull-attribute,shift,signed-integer-overflow,undefined,unreachable,vla-bound,vptr
 )
+
+file(GLOB testfiles "../tests/*.dat")
+foreach(file ${testfiles})
+  add_test(
+    NAME ${file}
+    COMMAND bash -c "${CMAKE_SOURCE_DIR}/../runtest.sh ${file} ./arc.x"
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+  set_tests_properties(${file} PROPERTIES DEPENDS arc.x)
+endforeach()

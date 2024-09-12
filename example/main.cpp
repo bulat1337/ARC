@@ -93,17 +93,36 @@ void test_ghost_list_behavior()
 
 int main()
 {
-    std::cout << "Running basic cache behavior test...\n";
-    test_basic_cache_behavior();
-    std::cout << "Basic cache behavior test passed!\n";
+//     std::cout << "Running basic cache behavior test...\n";
+//     test_basic_cache_behavior();
+//     std::cout << "Basic cache behavior test passed!\n";
+//
+//     std::cout << "Running adaptive cache behavior test...\n";
+//     test_adaptive_behavior();
+//     std::cout << "Adaptive cache behavior test passed!\n";
+//
+//     std::cout << "Running ghost list behavior test...\n";
+//     test_ghost_list_behavior();
+//     std::cout << "Ghost list behavior test passed!\n";
 
-    std::cout << "Running adaptive cache behavior test...\n";
-    test_adaptive_behavior();
-    std::cout << "Adaptive cache behavior test passed!\n";
+	size_t cache_size  = 0;
+	size_t page_amount = 0;
 
-    std::cout << "Running ghost list behavior test...\n";
-    test_ghost_list_behavior();
-    std::cout << "Ghost list behavior test passed!\n";
+	size_t hit_amount  = 0;
+
+	std::cin >> cache_size >> page_amount;
+
+	arc_cache_t<int> cache(cache_size);
+
+	for(size_t page_id = 0; page_id < page_amount; ++page_id)
+	{
+		int page = 0;
+		std::cin >> page;
+
+		hit_amount += static_cast<size_t>(cache.lookup_update(page, slow_get_page));
+	}
+
+	std::cout << hit_amount << '\n';
 
     return 0;
 }

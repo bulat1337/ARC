@@ -1,6 +1,0 @@
-/Users/bulatmotygullin/Documents/VLADOS/ARC_Cache/example/build/CMakeFiles/main.dir
-/Users/bulatmotygullin/Documents/VLADOS/ARC_Cache/example/build/CMakeFiles/edit_cache.dir
-/Users/bulatmotygullin/Documents/VLADOS/ARC_Cache/example/build/CMakeFiles/rebuild_cache.dir
-/Users/bulatmotygullin/Documents/VLADOS/ARC_Cache/example/build/ARC_Cache/CMakeFiles/arc_cache.dir
-/Users/bulatmotygullin/Documents/VLADOS/ARC_Cache/example/build/ARC_Cache/CMakeFiles/edit_cache.dir
-/Users/bulatmotygullin/Documents/VLADOS/ARC_Cache/example/build/ARC_Cache/CMakeFiles/rebuild_cache.dir
