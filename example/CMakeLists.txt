@@ -1,3 +1,6 @@
+# To run tests:
+#	env CTEST_OUTPUT_ON_FAILURE=1 cmake --build ./ --target test
+
 cmake_minimum_required(VERSION 3.27)
 
 project(Main)
@@ -10,8 +13,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 option(ENABLE_LOGGING "Enable logging" OFF)
 
 add_subdirectory(../ ${CMAKE_BINARY_DIR}/ARC_Cache)
-
-set(TESTS ../tests)
 
 add_executable(arc.x ./main.cpp)
 
@@ -81,7 +82,16 @@ target_link_options(arc.x PRIVATE
 	-fsanitize=address,alignment,bool,bounds,enum,float-cast-overflow,float-divide-by-zero,integer-divide-by-zero,nonnull-attribute,null,return,returns-nonnull-attribute,shift,signed-integer-overflow,undefined,unreachable,vla-bound,vptr
 )
 
-file(GLOB testfiles "../tests/*.dat")
+
+# normal tests
+set(TESTS ../tests)
+
+file(GLOB root_testfiles "${TESTS}/*.dat")
+
+file(GLOB_RECURSE subfolder_testfiles "${TESTS}/**/*.dat")
+
+list(APPEND testfiles ${root_testfiles} ${subfolder_testfiles})
+
 foreach(file ${testfiles})
   add_test(
     NAME ${file}
@@ -89,3 +99,24 @@ foreach(file ${testfiles})
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
   set_tests_properties(${file} PROPERTIES DEPENDS arc.x)
 endforeach()
+
+option(ENABLE_BD_TESTS "Big data tests" OFF)
+
+# big data tests
+if(ENABLE_BD_TESTS)
+	set(BIG_DATA_TESTS ../big_data_tests)
+
+	file(GLOB root_bd_testfiles "${BIG_DATA_TESTS}/*.dat")
+
+	file(GLOB_RECURSE subfolder_bd_testfiles "${BIG_DATA_TESTS}/**/*.dat")
+
+	list(APPEND bd_testfiles ${root_bd_testfiles} ${subfolder_bd_testfiles})
+
+	foreach(file ${bd_testfiles})
+	add_test(
+		NAME ${file}
+		COMMAND bash -c "${CMAKE_SOURCE_DIR}/../runtest.sh ${file} ./arc.x"
+		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+	set_tests_properties(${file} PROPERTIES DEPENDS arc.x)
+	endforeach()
+endif()

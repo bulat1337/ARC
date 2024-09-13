@@ -17,6 +17,6 @@ if [ $? -ne 0 ]; then
   echo "Test ${NAME} failed, see ${NAME}.log"
   exit 1
 else
-  rm $NAME.log
+#   rm $NAME.log
   echo "Test ${NAME} passed"
 fi
