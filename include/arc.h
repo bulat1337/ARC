@@ -1,12 +1,12 @@
-#ifndef ARC_CACHE_H
-#define ARC_CACHE_H
+#ifndef ARC_H
+#define ARC_H
 
 #include <iostream>
 #include <list>
 #include <map>
 
 template <typename T>
-class arc_cache
+class arc
 {
   private:
 	size_t sz_ = 0;
@@ -60,6 +60,26 @@ class arc_cache
 	}
 	#endif
 
+	void shift_LRU()
+	{
+		T removed = LRU_cache_.back();
+		LRU_cache_.pop_back();
+		LRU_hash_.erase(removed);
+
+		LRU_ghost_.push_front(removed);
+		LRU_ghost_hash_.insert({removed, LRU_ghost_.begin()});
+	}
+
+	void shift_LFU()
+	{
+		T removed = LFU_cache_.back();
+		LFU_cache_.pop_back();
+		LFU_hash_.erase(removed);
+
+		LFU_ghost_.push_front(removed);
+		LFU_ghost_hash_.insert({removed, LFU_ghost_.begin()});
+	}
+
 	void replace(T id)
 	{
 		HashIt hit = LFU_ghost_hash_.find(id);
@@ -69,26 +89,16 @@ class arc_cache
 					( 	(in_LFU_ghost && LRU_cache_.size() == coeff_) ||
 						(LRU_cache_.size() > coeff_) ) )
 		{
-			T removed = LRU_cache_.back();
-			LRU_cache_.pop_back();
-			LRU_hash_.erase(removed);
-
-			LRU_ghost_.push_front(removed);
-			LRU_ghost_hash_.insert({removed, LRU_ghost_.begin()});
+			shift_LRU();
 		}
 		else
 		{
-			T removed = LFU_cache_.back();
-			LFU_cache_.pop_back();
-			LFU_hash_.erase(removed);
-
-			LFU_ghost_.push_front(removed);
-			LFU_ghost_hash_.insert({removed, LFU_ghost_.begin()});
+			shift_LFU();
 		}
 	}
 
   public:
-	arc_cache(size_t sz) :
+	arc(size_t sz) :
 		sz_(sz) {}
 
 	template <typename F>
@@ -261,4 +271,4 @@ class arc_cache
 	}
 };
 
-#endif // ARC_CACHE_H
+#endif // ARC_H

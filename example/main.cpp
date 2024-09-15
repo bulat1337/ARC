@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "arc_cache.h"
+#include "arc.h"
 #include "perfect_cache.h"
 
 int slow_get_page(int id)
@@ -20,7 +20,7 @@ int main()
 
 	std::cin >> cache_size >> page_amount;
 
-	arc_cache<int> cache(cache_size);
+	arc<int> cache(cache_size);
 
 	// std::vector<int> requests;
 	// requests.reserve(page_amount);
