@@ -16,7 +16,7 @@ int main()
 	size_t page_amount = 0;
 
 	size_t hit_amount  = 0;
-	size_t perfect_hit_amount = 0;
+	// size_t perfect_hit_amount = 0;
 
 	std::cin >> cache_size >> page_amount;
 

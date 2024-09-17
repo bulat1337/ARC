@@ -28,6 +28,11 @@ Simply include `arc.h` in your code
 
 `env CTEST_OUTPUT_ON_FAILURE=1 cmake --build ./ --target test`
 
+#### If you want to run big data tests build the project like this first
+```
+cmake .. -DENABLE_BD_TESTS=ON
+```
+
 ### Logging
 
 To enable logging run:

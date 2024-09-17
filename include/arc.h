@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include <list>
-#include <map>
+#include <unordered_map>
 
 template <typename T>
 class arc
@@ -163,7 +163,8 @@ class arc
 			LRU_ghost_.erase(hit->second);
 			LRU_ghost_hash_.erase(id);
 
-			LFU_cache_.push_front(id);
+			T page = slow_get_page(id);
+			LFU_cache_.push_front(page);
 			LFU_hash_.insert({id, LFU_cache_.begin()});
 
 			#ifdef ENABLE_LOGGING
@@ -187,8 +188,9 @@ class arc
 			LFU_ghost_.erase(hit->second);
 			LFU_ghost_hash_.erase(id);
 
+			T page = slow_get_page(id);
 			LFU_cache_.push_front(id);
-			LFU_hash_.insert({id, LFU_cache_.begin()});
+			LFU_hash_.insert({page, LFU_cache_.begin()});
 
 			#ifdef ENABLE_LOGGING
 			dump_cache();
@@ -201,8 +203,6 @@ class arc
 		#ifdef ENABLE_LOGGING
 		std::clog << "New element.\n";
 		#endif
-
-		T page = slow_get_page(id);
 
 		if (LRU_cache_.size() + LRU_ghost_.size() == sz_)
 		{
@@ -220,7 +220,7 @@ class arc
 				LRU_ghost_.pop_back();
 				LRU_ghost_hash_.erase(removed);
 
-				replace(page);
+				replace(id);
 			}
 			else
 			{
@@ -256,11 +256,13 @@ class arc
 				LFU_ghost_hash_.erase(removed);
 			}
 
-			replace(page);
+			replace(id);
 		}
 
+		T page = slow_get_page(id);
 		LRU_cache_.push_front(page);
-		LRU_hash_.insert({page, LRU_cache_.begin()});
+		
+		LRU_hash_.insert({id, LRU_cache_.begin()});
 
 		#ifdef ENABLE_LOGGING
 		dump_cache();

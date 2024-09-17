@@ -2,7 +2,7 @@
 #define PERFECT_CACHE_H
 
 #include <iostream>
-#include <map>
+#include <unordered_map>
 #include <list>
 #include <vector>
 

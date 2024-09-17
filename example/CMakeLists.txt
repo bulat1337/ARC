@@ -1,7 +1,7 @@
 # To run tests:
 #	env CTEST_OUTPUT_ON_FAILURE=1 cmake --build ./ --target test
 
-cmake_minimum_required(VERSION 3.27)
+cmake_minimum_required(VERSION 3.13)
 
 project(Main)
 
@@ -23,7 +23,7 @@ endif()
 target_compile_options(arc.x PRIVATE
 	-D_DEBUG
 	-ggdb3
-	-O0
+	-O2
 	-Wall
 	-Wextra
 	-Weffc++
