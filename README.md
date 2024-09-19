@@ -8,36 +8,44 @@ ARC implementation
 
 ### To use in your project
 
-Simply include `arc.h` in your code
+Simply include `arc.h` or `perfect_cache.h` in your code
 
 ### To try example main
 
-1) `cd example`
+1) `mkdir build`
 
-2) `mkdir build`
+2) `cd build`
 
-3) `cd build`
+3) `cmake ..`
 
-4) `cmake ..`
+4) `make`
 
-5) `make`
-
-6) `./arc.x`
+5) `./arc.x` or `./perfect.x`
 
 ### To run tests
 
-`env CTEST_OUTPUT_ON_FAILURE=1 cmake --build ./ --target test`
+1) `cmake ..`
+2) `make`
+3) `ctest`
 
-#### If you want to run big data tests build the project like this first
+#### CMake options
+
+- If you want to run big data tests build the project like this first
 ```
-cmake .. -DENABLE_BD_TESTS=ON
+cmake .. -DENABLE_ARC_BD_TESTS=ON DENABLE_PERFECT_BD_TESTS=ON
 ```
 
-### Logging
+-  You can turn off arc or perfect_cache construction like this:
+`cmake .. -DBUILD_ARC=OFF` or `cmake .. -DBUILD_PERFECT=OFF`
 
-To enable logging run:
+-  To enable logging run:
 ```
 cmake .. -DENABLE_LOGGING
+```
+
+- To build the debug version:
+```
+cmake .. -DDEBUG=ON
 ```
 
 
