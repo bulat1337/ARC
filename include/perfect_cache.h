@@ -15,9 +15,13 @@ class perfect_cache
 	std::list<T> cache_;
 	std::unordered_map<T, ListIt> hash_;
 
+
 	size_t sz_;
 
 	std::vector<T> requests_;
+
+	std::unordered_map<T, size_t> requests_hash_;
+
 	size_t req_counter_ = 0;
 
 	#ifdef ENABLE_LOGGING
@@ -33,9 +37,12 @@ class perfect_cache
 	#endif
 
   public:
-	perfect_cache(size_t sz, const std::vector<T> requests) :
+	perfect_cache(	size_t sz
+					, const std::vector<T> requests
+					, const std::unordered_map<T, size_t> requests_hash) :
 		sz_(sz)
-		, requests_(requests) {}
+		, requests_(requests)
+		, requests_hash_(requests_hash){}
 
 	template <typename F>
 	bool lookup_update(T page, F slow_get_page)
@@ -47,7 +54,7 @@ class perfect_cache
 		#endif
 
 		++req_counter_;
-		if(hash_.find(page) != hash_.end())
+		if (hash_.find(page) != hash_.end())
 		{
 			#ifdef ENABLE_LOGGING
 			std::clog << "Found in cache.\n";
@@ -61,7 +68,19 @@ class perfect_cache
 		std::clog << "New page.\n";
 		#endif
 
-		if(cache_.size() < sz_)
+		if (requests_hash_[page] == 1)
+		{
+			#ifdef ENABLE_LOGGING
+			std::clog << "The page will not be in the future\n";
+			#endif
+
+			return false;
+		}
+
+
+		T pulled_page = slow_get_page(page);
+
+		if (cache_.size() < sz_)
 		{
 			#ifdef ENABLE_LOGGING
 			std::clog << "There is space in cache\n";
@@ -83,8 +102,8 @@ class perfect_cache
 			std::clog << "Searching for page to replace in cache\n";
 			#endif
 
-			size_t farthest_id = 0;
-			ListIt page_to_remove   = cache_.begin();
+			size_t farthest_id    = 0;
+			ListIt page_to_remove = cache_.begin();
 
 			for(ListIt cached = cache_.begin(); cached != cache_.end(); ++cached)
 			{
@@ -119,7 +138,6 @@ class perfect_cache
 			hash_.erase(*page_to_remove);
 			cache_.erase(page_to_remove);
 
-			T pulled_page = slow_get_page(page);
 			cache_.push_front(pulled_page);
 			hash_.insert({pulled_page, cache_.begin()});
 

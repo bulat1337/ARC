@@ -1,6 +1,9 @@
 #include <iostream>
+#include <vector>
+#include <unordered_map>
 
 #include "perfect_cache.h"
+
 
 int slow_get_page(int id)
 {
@@ -17,6 +20,8 @@ int main()
 	std::cin >> cache_size >> page_amount;
 
 	std::vector<int> requests;
+
+	std::unordered_map<int, size_t> requests_hash;
 	requests.reserve(page_amount);
 
 	for(size_t page_id = 0; page_id < page_amount; ++page_id)
@@ -24,9 +29,18 @@ int main()
 		int page = 0;
 		std::cin >> page;
 		requests.push_back(page);
+
+		if (requests_hash.find(page) != requests_hash.end())
+		{
+			requests_hash[page] += 1;
+		}
+		else
+		{
+			requests_hash.insert({page, 1});
+		}
 	}
 
-	perfect_cache<int> p_cache(cache_size, requests);
+	perfect_cache<int> p_cache(cache_size, requests, requests_hash);
 
 	for(size_t page_id = 0; page_id < page_amount; ++page_id)
 	{
