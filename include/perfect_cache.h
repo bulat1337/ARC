@@ -15,7 +15,6 @@ class perfect_cache
 	std::list<T> cache_;
 	std::unordered_map<T, ListIt> hash_;
 
-
 	size_t sz_;
 
 	std::vector<T> requests_;
@@ -105,6 +104,7 @@ class perfect_cache
 			size_t farthest_id    = 0;
 			ListIt page_to_remove = cache_.begin();
 
+
 			for(ListIt cached = cache_.begin(); cached != cache_.end(); ++cached)
 			{
 				bool found = false;
@@ -117,12 +117,12 @@ class perfect_cache
 							farthest_id    = request_id;
 							page_to_remove = cached;
 
-							found = true;
-							break;
 						}
-
+						found = true;
+						break;
 					}
 				}
+
 				if (!found)
 				{
 					page_to_remove = cached;
