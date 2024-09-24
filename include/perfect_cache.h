@@ -23,7 +23,6 @@ class perfect_cache
 
 	size_t req_counter_ = 0;
 
-	#ifdef ENABLE_LOGGING
 	void dump_cache()
 	{
 		std::clog << "cache_: ";
@@ -33,7 +32,6 @@ class perfect_cache
 		}
 		std::clog << "\n\n";
 	}
-	#endif
 
   public:
 	perfect_cache(	size_t sz

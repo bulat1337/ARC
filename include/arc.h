@@ -26,7 +26,6 @@ class arc
 
 	size_t coeff_ = 0;
 
-	#ifdef ENABLE_LOGGING
 	void dump_cache()
 	{
 		std::clog << "coeff_: " << coeff_ << '\n';
@@ -58,7 +57,6 @@ class arc
 		}
 		std::clog << "\n";
 	}
-	#endif
 
 	void shift_LRU()
 	{
@@ -261,7 +259,7 @@ class arc
 
 		T page = slow_get_page(id);
 		LRU_cache_.push_front(page);
-		
+
 		LRU_hash_.insert({id, LRU_cache_.begin()});
 
 		#ifdef ENABLE_LOGGING
