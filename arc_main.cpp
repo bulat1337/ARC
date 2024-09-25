@@ -16,7 +16,7 @@ int main()
 
 	std::cin >> cache_size >> page_amount;
 
-	arc<int> cache(cache_size);
+	arc::arc_t<int> cache(cache_size);
 
 	for(size_t page_id = 0; page_id < page_amount; ++page_id)
 	{

@@ -1,20 +1,50 @@
 #ifndef ARC_H
 #define ARC_H
 
+#include <cstdio>
+
 #include <iostream>
 #include <list>
 #include <unordered_map>
+#include <algorithm>
+
+namespace arc
+{
+
+
+#ifdef ENABLE_LOGGING
+
+#define MSG(msg)								\
+												\
+do												\
+{ 												\
+	std::fprintf(stderr, msg); 					\
+} while (false)									\
+
+#define LOG(msg, ...) 							\
+do												\
+{ 												\
+	std::fprintf(stderr, msg, __VA_ARGS__); 	\
+} while (false)									\
+
+#else
+
+#define MSG(msg) do {} while (false)
+#define LOG(msg, ...) do {} while (false)
+
+#endif
+
 
 template <typename T>
-class arc
+class arc_t
 {
   private:
-	size_t sz_ = 0;
+	const size_t sz_ = 0;
 
 	std::list<T> LRU_cache_;
 	std::list<T> LFU_cache_;
-	std::list<T> LRU_ghost_;
-	std::list<T> LFU_ghost_;
+	std::list<T> LRU_ghost_cache_;
+	std::list<T> LFU_ghost_cache_;
 
 	using ListIt = typename std::list<T>::iterator;
 	using HashIt = typename std::unordered_map<T, ListIt>::iterator;
@@ -26,59 +56,52 @@ class arc
 
 	size_t coeff_ = 0;
 
-	void dump_cache()
+	void dump_cache() const
 	{
 		std::clog << "coeff_: " << coeff_ << '\n';
 		std::clog << "LRU_cache_: ";
-		for(const auto& elem : LRU_cache_)
-		{
-			std::clog << elem << ' ';
-		}
+		std::copy(	std::begin(LRU_cache_), std::end(LRU_cache_)
+					, std::ostream_iterator<T>(std::clog, " "));
 		std::clog << '\n';
 
 		std::clog << "LFU_cache_: ";
-		for(const auto& elem : LFU_cache_)
-		{
-			std::clog << elem << ' ';
-		}
+		std::copy(	std::begin(LFU_cache_), std::end(LFU_cache_)
+					, std::ostream_iterator<T>(std::clog, " "));
 		std::clog << '\n';
 
-		std::clog << "LRU_ghost_: ";
-		for(const auto& elem : LRU_ghost_)
-		{
-			std::clog << elem << ' ';
-		}
+		std::clog << "LRU_ghost_cache_: ";
+		std::copy(	std::begin(LRU_ghost_cache_), std::end(LRU_ghost_cache_)
+					, std::ostream_iterator<T>(std::clog, " "));
 		std::clog << '\n';
 
-		std::clog << "LFU_ghost_: ";
-		for(const auto& elem : LFU_ghost_)
-		{
-			std::clog << elem << ' ';
-		}
+		std::clog << "LFU_ghost_cache_: ";
+		std::copy(	std::begin(LFU_ghost_cache_), std::end(LFU_ghost_cache_)
+					, std::ostream_iterator<T>(std::clog, " "));
 		std::clog << "\n";
+	}
+
+	void shift_cache(	std::list<T>& cache, std::unordered_map<T, ListIt>& hash
+						, std::list<T>& ghost_cache, std::unordered_map<T, ListIt>& ghost_hash)
+	{
+		T removed = cache.back();
+		cache.pop_back();
+		hash.erase(removed);
+
+		ghost_cache.emplace_front(removed);
+		ghost_hash.emplace(std::make_pair(removed, ghost_cache.begin()));
 	}
 
 	void shift_LRU()
 	{
-		T removed = LRU_cache_.back();
-		LRU_cache_.pop_back();
-		LRU_hash_.erase(removed);
-
-		LRU_ghost_.push_front(removed);
-		LRU_ghost_hash_.insert({removed, LRU_ghost_.begin()});
+		shift_cache(LRU_cache_, LRU_hash_, LRU_ghost_cache_, LRU_ghost_hash_);
 	}
 
 	void shift_LFU()
 	{
-		T removed = LFU_cache_.back();
-		LFU_cache_.pop_back();
-		LFU_hash_.erase(removed);
-
-		LFU_ghost_.push_front(removed);
-		LFU_ghost_hash_.insert({removed, LFU_ghost_.begin()});
+		shift_cache(LFU_cache_, LFU_hash_, LFU_ghost_cache_, LFU_ghost_hash_);
 	}
 
-	void replace(T id)
+	void replace(const T& id)
 	{
 		HashIt hit = LFU_ghost_hash_.find(id);
 		bool in_LFU_ghost = hit != LFU_ghost_hash_.end();
@@ -95,180 +118,191 @@ class arc
 		}
 	}
 
-  public:
-	arc(size_t sz) :
-		sz_(sz) {}
+	void handle_LRU_hit(const T& id, HashIt hit)
+	{
+		LRU_cache_.erase(hit->second);
+		LRU_hash_.erase(id);
+
+		LFU_cache_.push_front(id);
+		LFU_hash_.insert({id, LFU_cache_.begin()});
+
+		MSG("HIT!\n\n");
+	}
+
+	void handle_LFU_hit(const T& id, HashIt hit)
+	{
+		LFU_cache_.erase(hit->second);
+		LFU_hash_.erase(id);
+
+		LFU_cache_.push_front(id);
+		LFU_hash_.insert({id, LFU_cache_.begin()});
+	}
 
 	template <typename F>
-	bool lookup_update(T id, F slow_get_page)
+	void handle_LRU_ghost_hit(const T& id, HashIt hit, F slow_get_page)
 	{
-		#ifdef ENABLE_LOGGING
-		std::clog << "Processing " << id << '\n';
-		#endif
+		size_t delta = std::max(	static_cast<size_t>(1)
+									, LFU_ghost_cache_.size() / LRU_ghost_cache_.size());
+		coeff_ = std::min(coeff_ + delta, sz_);
 
-		if (sz_ == 0) return false;
+		replace(id);
 
-		HashIt hit;
+		LRU_ghost_cache_.erase(hit->second);
+		LRU_ghost_hash_.erase(id);
 
-		if ((hit = LRU_hash_.find(id)) != LRU_hash_.end())
+		T page = slow_get_page(id);
+		LFU_cache_.push_front(page);
+		LFU_hash_.insert({id, LFU_cache_.begin()});
+	}
+
+	template <typename F>
+	void handle_LFU_ghost_hit(const T& id, HashIt hit, F slow_get_page)
+	{
+		size_t delta = std::max(static_cast<size_t>(1), LRU_ghost_cache_.size() / LFU_ghost_cache_.size());
+		coeff_ = (coeff_ > delta) ? (coeff_ - delta) : 0;
+
+		replace(id);
+
+		LFU_ghost_cache_.erase(hit->second);
+		LFU_ghost_hash_.erase(id);
+
+		T page = slow_get_page(id);
+		LFU_cache_.push_front(id);
+		LFU_hash_.insert({page, LFU_cache_.begin()});
+	}
+
+	void handle_full_LRU(const T& id)
+	{
+		if (LRU_cache_.size() < sz_)
 		{
-			#ifdef ENABLE_LOGGING
-			std::clog << "Found in LRU\n";
-			#endif
-			LRU_cache_.erase(hit->second);
-			LRU_hash_.erase(id);
+			MSG("LRU_cache_.size() < sz_\n");
 
-			LFU_cache_.push_front(id);
-			LFU_hash_.insert({id, LFU_cache_.begin()});
-
-			#ifdef ENABLE_LOGGING
-			dump_cache();
-			std::clog << "HIT!\n\n";
-			#endif
-
-			return true;
-		}
-		else if ((hit = LFU_hash_.find(id)) != LFU_hash_.end())
-		{
-			#ifdef ENABLE_LOGGING
-			std::clog << "found in LFU\n";
-			#endif
-
-			LFU_cache_.erase(hit->second);
-			LFU_hash_.erase(id);
-
-			LFU_cache_.push_front(id);
-			LFU_hash_.insert({id, LFU_cache_.begin()});
-
-			#ifdef ENABLE_LOGGING
-			dump_cache();
-			std::clog << "HIT!\n\n";
-			#endif
-
-			return true;
-		}
-		else if ((hit = LRU_ghost_hash_.find(id)) != LRU_ghost_hash_.end())
-		{
-			#ifdef ENABLE_LOGGING
-			std::clog << "found in LRU_ghost\n";
-			#endif
-
-			size_t delta = std::max(static_cast<size_t>(1), LFU_ghost_.size() / LRU_ghost_.size());
-			coeff_ = std::min(coeff_ + delta, sz_);
+			T removed = LRU_ghost_cache_.back();
+			LRU_ghost_cache_.pop_back();
+			LRU_ghost_hash_.erase(removed);
 
 			replace(id);
-
-			LRU_ghost_.erase(hit->second);
-			LRU_ghost_hash_.erase(id);
-
-			T page = slow_get_page(id);
-			LFU_cache_.push_front(page);
-			LFU_hash_.insert({id, LFU_cache_.begin()});
-
-			#ifdef ENABLE_LOGGING
-			dump_cache();
-			std::clog << "MISS!\n\n";
-			#endif
-
-			return false;
 		}
-		else if ((hit = LFU_ghost_hash_.find(id)) != LFU_ghost_hash_.end())
+		else
 		{
-			#ifdef ENABLE_LOGGING
-			std::clog << "found in LFU_ghost\n";
-			#endif
+			MSG("LRU_cache_.size() >= sz_\n");
 
-			size_t delta = std::max(static_cast<size_t>(1), LRU_ghost_.size() / LFU_ghost_.size());
-			coeff_ = (coeff_ > delta) ? (coeff_ - delta) : 0;
+			T removed = LRU_cache_.back();
+			LRU_cache_.pop_back();
+			LRU_hash_.erase(removed);
+		}
+	}
 
-			replace(id);
+	void handle_full_cache(const T& id)
+	{
+		if (	LRU_cache_.size() + LRU_ghost_cache_.size()
+					+ LFU_cache_.size() + LFU_ghost_cache_.size() == 2 * sz_)
+		{
+			MSG("LRU_cache_.size() + LRU_ghost_cache_.size()\n"
+				"+ LFU_cache_.size() + LRU_ghost_cache_.size() == 2 * sz_\n");
 
-			LFU_ghost_.erase(hit->second);
-			LFU_ghost_hash_.erase(id);
-
-			T page = slow_get_page(id);
-			LFU_cache_.push_front(id);
-			LFU_hash_.insert({page, LFU_cache_.begin()});
-
-			#ifdef ENABLE_LOGGING
-			dump_cache();
-			std::clog << "MISS!\n\n";
-			#endif
-
-			return false;
+			T removed = LFU_ghost_cache_.back();
+			LFU_ghost_cache_.pop_back();
+			LFU_ghost_hash_.erase(removed);
 		}
 
-		#ifdef ENABLE_LOGGING
-		std::clog << "New element.\n";
-		#endif
+		replace(id);
+	}
 
-		if (LRU_cache_.size() + LRU_ghost_.size() == sz_)
+	template <typename F>
+	void handle_cache_miss(const T& id, F slow_get_page)
+	{
+		if (LRU_cache_.size() + LRU_ghost_cache_.size() == sz_)
 		{
-			#ifdef ENABLE_LOGGING
-			std::clog << "LRU_cache_.size() + LRU_ghost_.size() == sz_\n";
-			#endif
+			MSG("LRU_cache_.size() + LRU_ghost_cache_.size() == sz_\n");
 
-			if (LRU_cache_.size() < sz_)
-			{
-				#ifdef ENABLE_LOGGING
-				std::clog << "LRU_cache_.size() < sz_\n";
-				#endif
-
-				T removed = LRU_ghost_.back();
-				LRU_ghost_.pop_back();
-				LRU_ghost_hash_.erase(removed);
-
-				replace(id);
-			}
-			else
-			{
-				#ifdef ENABLE_LOGGING
-				std::clog << "LRU_cache_.size() >= sz_\n";
-				#endif
-
-				T removed = LRU_cache_.back();
-				LRU_cache_.pop_back();
-				LRU_hash_.erase(removed);
-			}
+			handle_full_LRU(id);
 		}
-		else if (	(LRU_cache_.size() + LRU_ghost_.size() < sz_) &&
-					(	LRU_cache_.size() + LRU_ghost_.size()
-						+ LFU_cache_.size() + LFU_ghost_.size() >= sz_) )
+		else if (	(LRU_cache_.size() + LRU_ghost_cache_.size() < sz_) &&
+					(	LRU_cache_.size() + LRU_ghost_cache_.size()
+						+ LFU_cache_.size() + LFU_ghost_cache_.size() >= sz_) )
 		{
-			#ifdef ENABLE_LOGGING
-			std::clog << 	"(LRU_cache_.size() + LRU_ghost_.size() < sz_) &&\n"
-							"(	LRU_cache_.size() + LRU_ghost_.size()\n"
-								"+ LFU_cache_.size() + LFU_ghost_.size() >= sz_)\n";
-			#endif
+			MSG("(LRU_cache_.size() + LRU_ghost_cache_.size() < sz_) &&\n"
+				"(	LRU_cache_.size() + LRU_ghost_cache_.size()\n"
+				"+ LFU_cache_.size() + LFU_ghost_cache_.size() >= sz_)\n");
 
-			if (	LRU_cache_.size() + LRU_ghost_.size()
-					+ LFU_cache_.size() + LFU_ghost_.size() == 2 * sz_)
-			{
-				#ifdef ENABLE_LOGGING
-				std::clog << 	"LRU_cache_.size() + LRU_ghost_.size()\n"
-								"+ LFU_cache_.size() + LRU_ghost_.size() == 2 * sz_\n";
-				#endif
-
-				T removed = LFU_ghost_.back();
-				LFU_ghost_.pop_back();
-				LFU_ghost_hash_.erase(removed);
-			}
-
-			replace(id);
+			handle_full_cache(id);
 		}
 
 		T page = slow_get_page(id);
 		LRU_cache_.push_front(page);
 
 		LRU_hash_.insert({id, LRU_cache_.begin()});
+	}
 
+  public:
+	arc_t(const size_t sz) :
+		sz_(sz) {}
+
+	template <typename F>
+	bool lookup_update(const T& id, F slow_get_page)
+	{
 		#ifdef ENABLE_LOGGING
-		dump_cache();
-		std::clog << "MISS!\n\n";
+		std::cerr << "Processing " << id << '\n';
 		#endif
+
+		if (sz_ == 0) return false;
+
+		if (auto hit = LRU_hash_.find(id); hit != LRU_hash_.end())
+		{
+			MSG("Found in LRU\n");
+
+			handle_LRU_hit(id, hit);
+
+			MSG("HIT!\n\n");
+
+			return true;
+		}
+
+		if (auto hit = LFU_hash_.find(id); hit != LFU_hash_.end())
+		{
+			MSG("found in LFU\n");
+
+			handle_LFU_hit(id, hit);
+
+			MSG("HIT!\n\n");
+
+			return true;
+		}
+
+		if (auto hit = LRU_ghost_hash_.find(id); hit != LRU_ghost_hash_.end())
+		{
+			MSG("found in LRU_ghost\n");
+
+			handle_LRU_ghost_hit(id, hit, slow_get_page);
+
+			MSG("MISS!\n\n");
+
+			return false;
+		}
+
+		if (auto hit = LFU_ghost_hash_.find(id); hit != LFU_ghost_hash_.end())
+		{
+			MSG("found in LFU_ghost\n");
+
+			handle_LFU_ghost_hit(id, hit, slow_get_page);
+
+			MSG("MISS!\n\n");
+
+			return false;
+		}
+
+
+		MSG("New element.\n");
+
+		handle_cache_miss(id, slow_get_page);
+
+		MSG("MISS!\n\n");
 
 		return false;
 	}
 };
+
+}
 
 #endif // ARC_H

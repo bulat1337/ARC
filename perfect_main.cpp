@@ -40,7 +40,7 @@ int main()
 		}
 	}
 
-	perfect_cache<int> p_cache(cache_size, requests, requests_hash);
+	perfect_cache::perfect_cache_t<int> p_cache(cache_size, requests, requests_hash);
 
 	for(size_t page_id = 0; page_id < page_amount; ++page_id)
 	{
