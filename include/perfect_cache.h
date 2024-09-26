@@ -6,6 +6,7 @@
 #include <list>
 #include <vector>
 #include <algorithm>
+#include <format>
 
 namespace perfect_cache
 {
@@ -22,7 +23,7 @@ do												\
 #define LOG(msg, ...) 							\
 do												\
 { 												\
-	std::fprintf(stderr, msg, __VA_ARGS__); 	\
+	std::clog << std::format(msg, __VA_ARGS__); \
 } while (false)									\
 
 #else
@@ -87,10 +88,8 @@ class perfect_cache_t
 			}
 		}
 
-		#ifdef ENABLE_LOGGING
-		std::clog << "page to remove: " << *page_to_remove << '\n';
-		std::clog << "farthest_id: " << farthest_id << '\n';
-		#endif
+		LOG("Page to remove: {}\n", *page_to_remove);
+		LOG("farthest_id: {}\n", farthest_id);
 
 		hash_.erase(*page_to_remove);
 		cache_.erase(page_to_remove);
@@ -110,11 +109,7 @@ class perfect_cache_t
 	template <typename F>
 	bool lookup_update(T id, F slow_get_page)
 	{
-		if(sz_ == 0) return false;
-
-		#ifdef ENABLE_LOGGING
-		std::clog << "processing: " << id << '\n';
-		#endif
+		LOG("Processing: {}\n", id);
 
 		++req_counter_;
 
@@ -138,7 +133,7 @@ class perfect_cache_t
 
 		if (cache_.size() < sz_)
 		{
-			MSG(std::clog << "There is space in cache\n");
+			MSG("There is space in cache\n");
 
 			cache_.push_front(pulled_page);
 			hash_.emplace(pulled_page, cache_.begin());
