@@ -44,5 +44,5 @@ int main()
 	std::cout << hit_amount << '\n';
 
 
-    return 0;
+	return 0;
 }
