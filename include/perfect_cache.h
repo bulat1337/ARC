@@ -8,36 +8,17 @@
 #include <algorithm>
 #include <format>
 
+#include "log.h"
+
 namespace perfect_cache
 {
-
-#ifdef ENABLE_LOGGING
-
-#define MSG(msg)								\
-												\
-do												\
-{ 												\
-	std::fprintf(stderr, msg); 					\
-} while (false)									\
-
-#define LOG(msg, ...) 							\
-do												\
-{ 												\
-	std::clog << std::format(msg, __VA_ARGS__); \
-} while (false)									\
-
-#else
-
-#define MSG(msg) do {} while (false)
-#define LOG(msg, ...) do {} while (false)
-
-#endif
-
 template <typename T>
 class perfect_cache_t
 {
   private:
 	using ListIt = std::list<T>::iterator;
+	using VecIt  = std::vector<T>::iterator;
+	using ItDiff = std::vector<T>::iterator::difference_type;
 
 	std::list<T> cache_;
 	std::unordered_map<T, ListIt> hash_;
@@ -60,28 +41,24 @@ class perfect_cache_t
 
 	void replace_farthest_page(const T& id, const T& pulled_page)
 	{
-		size_t farthest_id    = 0;
+		ItDiff farthest_dist    = -1;
 		ListIt page_to_remove = cache_.begin();
 
-		for(ListIt cached = cache_.begin(); cached != cache_.end(); ++cached)
+		for (ListIt cached = cache_.begin(); cached != cache_.end(); ++cached)
 		{
-			bool found = false;
-			for(size_t request_id = req_counter_; request_id < requests_.size(); ++request_id)
-			{
-				if(*cached == requests_[request_id])
-				{
-					if (request_id > farthest_id)
-					{
-						farthest_id    = request_id;
-						page_to_remove = cached;
+			VecIt cached_request = std::find(requests_.begin() + req_counter_, requests_.end(), *cached);
 
-					}
-					found = true;
-					break;
+			if (cached_request != requests_.end())
+			{
+				ItDiff distance = std::distance(requests_.begin(), cached_request);
+
+				if (distance > farthest_dist)
+				{
+					farthest_dist  = distance;
+					page_to_remove = cached;
 				}
 			}
-
-			if (!found)
+			else
 			{
 				page_to_remove = cached;
 				break;
@@ -100,8 +77,8 @@ class perfect_cache_t
 
   public:
 	perfect_cache_t(	size_t sz
-						, const std::vector<T> requests
-						, const std::unordered_map<T, size_t> requests_hash) :
+						, const std::vector<T>& requests
+						, const std::unordered_map<T, size_t>& requests_hash) :
 		sz_(sz)
 		, requests_(requests)
 		, requests_hash_(requests_hash) {}

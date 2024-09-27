@@ -9,32 +9,10 @@
 #include <algorithm>
 #include <format>
 
+#include "log.h"
+
 namespace arc
 {
-
-
-#ifdef ENABLE_LOGGING
-
-#define MSG(msg)								\
-												\
-do												\
-{ 												\
-	std::clog << msg;		 					\
-} while (false)									\
-
-#define LOG(msg, ...) 							\
-do												\
-{ 												\
-	std::clog << std::format(msg, __VA_ARGS__); \
-} while (false)									\
-
-#else
-
-#define MSG(msg) do {} while (false)
-#define LOG(msg, ...) do {} while (false)
-
-#endif
-
 
 template <typename T>
 class arc_t
@@ -148,14 +126,12 @@ class arc_t
 	{
 		if (inc_coeff)
 		{
-			size_t delta = std::max(  static_cast<size_t>(1)
-									, LFU_ghost_cache_.size() / LRU_ghost_cache_.size());
+			size_t delta = std::max(1ul, LFU_ghost_cache_.size() / LRU_ghost_cache_.size());
 			coeff_ = std::min(coeff_ + delta, sz_);
 		}
 		else
 		{
-			size_t delta = std::max(  static_cast<size_t>(1)
-									, LRU_ghost_cache_.size() / LFU_ghost_cache_.size());
+			size_t delta = std::max(1ul, LRU_ghost_cache_.size() / LFU_ghost_cache_.size());
 			coeff_ = (coeff_ > delta) ? (coeff_ - delta) : 0;
 		}
 
@@ -173,7 +149,7 @@ class arc_t
 	{
 		if (LRU_cache_.size() < sz_)
 		{
-			MSG("LRU_cache_.size() < sz_\n");
+			MSG("LRU is not full yet.\n");
 
 			remove_oldest(LRU_ghost_cache_, LRU_ghost_hash_);
 
@@ -181,7 +157,7 @@ class arc_t
 		}
 		else
 		{
-			MSG("LRU_cache_.size() >= sz_\n");
+			MSG("LRU is full.\n");
 
 			remove_oldest(LRU_cache_, LRU_hash_);
 		}
@@ -192,8 +168,7 @@ class arc_t
 		if (	LRU_cache_.size() + LRU_ghost_cache_.size()
 					+ LFU_cache_.size() + LFU_ghost_cache_.size() == 2 * sz_)
 		{
-			MSG("LRU_cache_.size() + LRU_ghost_cache_.size()\n"
-				"+ LFU_cache_.size() + LRU_ghost_cache_.size() == 2 * sz_\n");
+			MSG("Overall size is double the set size\n");
 
 			remove_oldest(LFU_ghost_cache_, LFU_ghost_hash_);
 		}
@@ -206,7 +181,7 @@ class arc_t
 	{
 		if (LRU_cache_.size() + LRU_ghost_cache_.size() == sz_)
 		{
-			MSG("LRU_cache_.size() + LRU_ghost_cache_.size() == sz_\n");
+			MSG("Overall LRU is full.\n");
 
 			handle_full_LRU(id);
 		}
@@ -214,9 +189,7 @@ class arc_t
 					(	LRU_cache_.size() + LRU_ghost_cache_.size()
 						+ LFU_cache_.size() + LFU_ghost_cache_.size() >= sz_) )
 		{
-			MSG("(LRU_cache_.size() + LRU_ghost_cache_.size() < sz_) &&\n"
-				"(	LRU_cache_.size() + LRU_ghost_cache_.size()\n"
-				"+ LFU_cache_.size() + LFU_ghost_cache_.size() >= sz_)\n");
+			MSG("LRU is not full but overall size is set size.\n");
 
 			handle_full_cache(id);
 		}
@@ -238,54 +211,44 @@ class arc_t
 
 		if (auto hit = LRU_hash_.find(id); hit != LRU_hash_.end())
 		{
-			MSG("Found in LRU\n");
+			MSG("HIT: found in LRU\n");
 
 			handle_hit(id, hit, LRU_cache_, LRU_hash_);
-
-			MSG("HIT!\n\n");
 
 			return true;
 		}
 
 		if (auto hit = LFU_hash_.find(id); hit != LFU_hash_.end())
 		{
-			MSG("found in LFU\n");
+			MSG("HIT: found in LFU\n");
 
 			handle_hit(id, hit, LFU_cache_, LFU_hash_);
-
-			MSG("HIT!\n\n");
 
 			return true;
 		}
 
 		if (auto hit = LRU_ghost_hash_.find(id); hit != LRU_ghost_hash_.end())
 		{
-			MSG("found in LRU_ghost\n");
+			MSG("MISS: found in LRU_ghost\n");
 
 			handle_ghost_hit(id, hit, slow_get_page, LRU_ghost_cache_, LRU_ghost_hash_, true);
-
-			MSG("MISS!\n\n");
 
 			return false;
 		}
 
 		if (auto hit = LFU_ghost_hash_.find(id); hit != LFU_ghost_hash_.end())
 		{
-			MSG("found in LFU_ghost\n");
+			MSG("MISS: found in LFU_ghost\n");
 
 			handle_ghost_hit(id, hit, slow_get_page, LFU_ghost_cache_, LFU_ghost_hash_, false);
-
-			MSG("MISS!\n\n");
 
 			return false;
 		}
 
 
-		MSG("New element.\n");
+		MSG("MISS: New element.\n");
 
 		handle_cache_miss(id, slow_get_page);
-
-		MSG("MISS!\n\n");
 
 		return false;
 	}

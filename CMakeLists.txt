@@ -87,7 +87,9 @@ set(DEBUG_COMPILE_OPTIONS
 # ----- ARC executable -----
 if(BUILD_ARC)
 	add_executable(arc.x ./arc_main.cpp)
-	target_include_directories(arc.x PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+	target_include_directories(arc.x PRIVATE
+		${CMAKE_CURRENT_SOURCE_DIR}/include
+		${CMAKE_CURRENT_SOURCE_DIR}/utils/include)
 
 	if(ENABLE_LOGGING)
 		target_compile_definitions(arc.x PRIVATE ENABLE_LOGGING)
@@ -107,7 +109,9 @@ endif()
 # ----- PERFECT executable -----
 if(BUILD_PERFECT)
 	add_executable(perfect.x ./perfect_main.cpp)
-	target_include_directories(perfect.x PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+	target_include_directories(perfect.x PRIVATE
+		${CMAKE_CURRENT_SOURCE_DIR}/include
+		${CMAKE_CURRENT_SOURCE_DIR}/utils/include)
 
 	if(ENABLE_LOGGING)
 		target_compile_definitions(perfect.x PRIVATE ENABLE_LOGGING)

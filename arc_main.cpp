@@ -2,9 +2,30 @@
 
 #include "arc.h"
 
+namespace
+{
+
 int slow_get_page(int id)
 {
-    return id;
+	return id;
+}
+
+size_t process_pages(arc::arc_t<int>& cache, size_t page_amount)
+{
+	size_t hit_amount = 0;
+
+	for(size_t page_id = 0; page_id < page_amount; ++page_id)
+	{
+		int page = 0;
+		std::cin >> page;
+
+		if (static_cast<size_t>(cache.lookup_update(page, slow_get_page)))
+			++hit_amount;
+	}
+
+	return hit_amount;
+}
+
 }
 
 int main()
@@ -18,14 +39,7 @@ int main()
 
 	arc::arc_t<int> cache(cache_size);
 
-	for(size_t page_id = 0; page_id < page_amount; ++page_id)
-	{
-		int page = 0;
-		std::cin >> page;
-		// requests.push_back(page);
-
-		hit_amount += static_cast<size_t>(cache.lookup_update(page, slow_get_page));
-	}
+	hit_amount = process_pages(cache, page_amount);
 
 	std::cout << hit_amount << '\n';
 
