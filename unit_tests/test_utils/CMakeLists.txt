@@ -40,6 +40,3 @@ target_include_directories(test_utils PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/utils/include
 )
-
-enable_testing()
-add_test(NAME ArcTests COMMAND arc_tests)
