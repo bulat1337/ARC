@@ -3,6 +3,9 @@ cmake_minimum_required(VERSION 3.14)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+set(TEST_DATA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/data/")
+add_definitions(-DTEST_DATA_DIR=\"${TEST_DATA_DIR}\")
+
 find_package(GTest REQUIRED)
 
 set(COMPILE_OPTIONS
@@ -29,7 +32,7 @@ add_executable(perfect_tests
 target_compile_options(perfect_tests PRIVATE ${COMPILE_OPTIONS})
 
 target_link_libraries(perfect_tests
-	test_utils
+	process_utils
 	GTest::GTest
 	GTest::Main
 )

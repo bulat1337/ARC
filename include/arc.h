@@ -92,8 +92,7 @@ class arc_t
 
 	void replace(const T& id)
 	{
-		HashIt hit = LFU_ghost_hash_.find(id);
-		bool in_LFU_ghost = hit != LFU_ghost_hash_.end();
+		bool in_LFU_ghost = LFU_ghost_hash_.contains(id);
 
 		if (	!LRU_cache_.empty() &&
 					( 	(in_LFU_ghost && LRU_cache_.size() == coeff_) ||

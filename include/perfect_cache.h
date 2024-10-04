@@ -48,20 +48,18 @@ class perfect_cache_t
 		{
 			VecIt cached_request = std::find(requests_.begin() + req_counter_, requests_.end(), *cached);
 
-			if (cached_request != requests_.end())
-			{
-				ItDiff distance = std::distance(requests_.begin(), cached_request);
-
-				if (distance > farthest_dist)
-				{
-					farthest_dist  = distance;
-					page_to_remove = cached;
-				}
-			}
-			else
+			if (cached_request == requests_.end())
 			{
 				page_to_remove = cached;
 				break;
+			}
+
+			if (ItDiff distance = std::distance(requests_.begin(), cached_request);
+				distance > farthest_dist)
+			{
+
+				farthest_dist  = distance;
+				page_to_remove = cached;
 			}
 		}
 
@@ -90,7 +88,7 @@ class perfect_cache_t
 
 		++req_counter_;
 
-		if (hash_.find(id) != hash_.end())
+		if (hash_.contains(id))
 		{
 			MSG("Found in cache.\n");
 
