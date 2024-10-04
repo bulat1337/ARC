@@ -15,13 +15,13 @@ int main()
 
 	std::cin >> cache_size >> page_amount;
 
-	std::vector<int> requests;
+	std::vector<double> requests;
 
-	std::unordered_map<int, size_t> requests_hash;
+	std::unordered_map<double, size_t> requests_hash;
 
 	utils::set_requests(requests, requests_hash, page_amount, std::cin);
 
-	perfect_cache::perfect_cache_t<int> p_cache(cache_size, requests, requests_hash);
+	perfect_cache::perfect_cache_t<double> p_cache(cache_size, requests, requests_hash);
 
 	hit_amount = utils::process_pages(p_cache, requests, page_amount);
 

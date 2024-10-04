@@ -17,6 +17,11 @@ TEST(LFU_pattern, cache_1_data_11)
 	test_utils::run_test<int>("/LFU_pattern/cache-1_data-11", utils::Cache_type::perfect);
 }
 
+TEST(LFU_pattern, cache_1_data_11_fp)
+{
+	test_utils::run_test<double>("/LFU_pattern/cache-1_data-11_fp", utils::Cache_type::perfect);
+}
+
 TEST(LRU_pattern, cache_5_data_100)
 {
 	test_utils::run_test<int>("/LRU_pattern/cache-5_data-100", utils::Cache_type::perfect);

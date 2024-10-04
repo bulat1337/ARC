@@ -32,7 +32,6 @@ add_executable(perfect_tests
 target_compile_options(perfect_tests PRIVATE ${COMPILE_OPTIONS})
 
 target_link_libraries(perfect_tests
-	process_utils
 	GTest::GTest
 	GTest::Main
 )

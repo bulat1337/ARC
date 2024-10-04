@@ -5,7 +5,6 @@ project(cache)
 enable_testing()
 add_subdirectory(${CMAKE_SOURCE_DIR}/unit_tests/arc)
 add_subdirectory(${CMAKE_SOURCE_DIR}/unit_tests/perfect)
-add_subdirectory(${CMAKE_SOURCE_DIR}/utils/)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -91,13 +90,11 @@ set(DEBUG_COMPILE_OPTIONS
 
 # ----- ARC executable -----
 if(BUILD_ARC)
-	add_executable(arc.x ./arc_main.cpp ./utils/src/process_utils.cpp)
+	add_executable(arc.x ./arc_main.cpp)
 
 	target_include_directories(arc.x PRIVATE
 		${CMAKE_CURRENT_SOURCE_DIR}/include
 		${CMAKE_CURRENT_SOURCE_DIR}/utils/include)
-
-	target_link_libraries(arc.x PRIVATE process_utils)
 
 	if(ENABLE_LOGGING)
 		target_compile_definitions(arc.x PRIVATE ENABLE_LOGGING)
@@ -116,7 +113,7 @@ endif()
 
 # ----- PERFECT executable -----
 if(BUILD_PERFECT)
-	add_executable(perfect.x ./perfect_main.cpp ./utils/src/process_utils.cpp)
+	add_executable(perfect.x ./perfect_main.cpp)
 	target_include_directories(perfect.x PRIVATE
 		${CMAKE_CURRENT_SOURCE_DIR}/include
 		${CMAKE_CURRENT_SOURCE_DIR}/utils/include)

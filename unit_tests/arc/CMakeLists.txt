@@ -32,7 +32,6 @@ add_executable(arc_tests
 target_compile_options(arc_tests PRIVATE ${COMPILE_OPTIONS})
 
 target_link_libraries(arc_tests
-	process_utils
 	GTest::GTest
 	GTest::Main
 )

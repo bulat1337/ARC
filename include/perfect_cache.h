@@ -64,7 +64,7 @@ class perfect_cache_t
 		}
 
 		LOG("Page to remove: {}\n", *page_to_remove);
-		LOG("farthest_id: {}\n", farthest_id);
+		LOG("farthest_dist: {}\n", farthest_dist);
 
 		hash_.erase(*page_to_remove);
 		cache_.erase(page_to_remove);
