@@ -11,12 +11,6 @@
 namespace utils
 {
 
-enum class Cache_type
-{
-	  arc
-	, perfect
-};
-
 template <typename T>
 T slow_get_page(T id)
 {
@@ -42,9 +36,9 @@ size_t process_pages(arc::arc_t<PageType>& cache, size_t page_amount, std::istre
 
 template <typename PageType>
 void set_requests(	  std::vector<PageType>& requests
-							, std::unordered_map<PageType, size_t>& requests_hash
-							, size_t page_amount
-							, std::istream& in)
+					, std::unordered_map<PageType, size_t>& requests_hash
+					, size_t page_amount
+					, std::istream& in)
 {
 	requests.reserve(page_amount);
 
@@ -66,7 +60,7 @@ void set_requests(	  std::vector<PageType>& requests
 }
 
 template <typename PageType>
-size_t process_pages(  perfect_cache::perfect_cache_t<PageType>& cache
+size_t process_pages(  	  perfect_cache::perfect_cache_t<PageType>& cache
 						, const std::vector<PageType>& requests
 						, size_t page_amount)
 {

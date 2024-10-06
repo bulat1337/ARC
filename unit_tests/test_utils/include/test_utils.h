@@ -8,6 +8,8 @@
 #include <vector>
 #include <unordered_map>
 #include <ranges>
+#include <filesystem>
+#include <string_view>
 
 #include <gtest/gtest.h>
 
@@ -17,14 +19,20 @@
 
 namespace test_utils
 {
-	template <typename PageType>
-	std::string get_result(const std::string& file_name, utils::Cache_type cache_type)
+	enum class Cache_type
 	{
-		std::ifstream test_data(file_name);
+		arc
+		, perfect
+	};
 
-		if(!test_data.is_open())
-			throw std::runtime_error(std::format("Can't open {}\n", file_name));
+	template <typename PageType>
+	std::string get_result(std::string_view file_name, test_utils::Cache_type cache_type)
+	{
+		std::ifstream test_data;
 
+		test_data.exceptions(std::ifstream::badbit | std::ifstream::failbit);
+
+		test_data.open(file_name);
 
 		size_t cache_size  = 0;
 		size_t page_amount = 0;
@@ -35,7 +43,7 @@ namespace test_utils
 
 		switch (cache_type)
 		{
-			case utils::Cache_type::arc:
+			case test_utils::Cache_type::arc:
 			{
 				arc::arc_t<PageType> cache(cache_size);
 
@@ -43,7 +51,7 @@ namespace test_utils
 
 				break;
 			}
-			case utils::Cache_type::perfect:
+			case test_utils::Cache_type::perfect:
 			{
 				std::vector<PageType> requests;
 
@@ -51,7 +59,9 @@ namespace test_utils
 
 				utils::set_requests(requests, requests_hash, page_amount, test_data);
 
-				perfect_cache::perfect_cache_t<PageType> p_cache(cache_size, requests, requests_hash);
+				perfect_cache::perfect_cache_t<PageType> p_cache(	  cache_size
+																	, requests
+																	, requests_hash);
 
 				hit_amount = utils::process_pages(p_cache, requests, page_amount);
 
@@ -64,12 +74,13 @@ namespace test_utils
 		return std::to_string(hit_amount);
 	}
 
-	std::string get_answer(const std::string& file_name)
+	inline std::string get_answer(std::string_view file_name)
 	{
-		std::ifstream answer_file(file_name);
+		std::ifstream answer_file;
 
-		if(!answer_file.is_open())
-			throw std::runtime_error(std::format("Can't open {}\n", file_name));
+		answer_file.exceptions(std::ifstream::badbit | std::ifstream::failbit);
+
+		answer_file.open(file_name);
 
 		std::string answer;
 		answer_file >> answer;
@@ -78,11 +89,51 @@ namespace test_utils
 	}
 
 	template <typename PageType>
-	void run_test(const std::string& test_name, utils::Cache_type cache_type)
+	void run_test(std::string_view test_name, test_utils::Cache_type cache_type)
 	{
-		std::string test_path = std::string(TEST_DATA_DIR) + test_name;
-		std::string result = get_result<PageType>(test_path + ".dat", cache_type);
-		std::string answer = get_answer(test_path + ".ans");
+		std::filesystem::path test_dir  = TEST_DATA_DIR;
+
+		std::filesystem::path test_path = test_dir / test_name;
+
+		test_path.replace_extension(".dat");
+
+		std::string answer;
+		std::string result;
+
+		try
+		{
+			result = get_result<PageType>(test_path.string(), cache_type);
+		}
+		catch (const std::runtime_error& exception)
+		{
+			std::cerr << exception.what() << '\n';
+			FAIL() << "Error during test result processing: " << test_name;
+		}
+		catch (const std::logic_error& exception)
+		{
+			std::cerr << exception.what() << '\n';
+			FAIL() << "Logic error during cache processing: " << test_name;
+		}
+		catch (...)
+		{
+			FAIL();
+		}
+
+		test_path.replace_extension(".ans");
+
+		try
+		{
+			answer = get_answer(test_path.string());
+		}
+		catch (const std::runtime_error& exception)
+		{
+			std::cerr << exception.what() << '\n';
+			FAIL() << "Error during answer file loading: " << test_name;
+		}
+		catch (...)
+		{
+			FAIL();
+		}
 
 		EXPECT_EQ(result, answer);
 	}
