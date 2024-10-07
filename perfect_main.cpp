@@ -1,10 +1,11 @@
-#include <iostream>
-#include <vector>
-#include <unordered_map>
-#include <ranges>
+#include <stddef.h>         // for size_t
 
-#include "perfect_cache.h"
-#include "process_utils.h"
+#include <iostream>         // for basic_istream, basic_ostream, cin, operat...
+#include <unordered_map>    // for unordered_map
+#include <vector>           // for vector
+
+#include "perfect_cache.h"  // for perfect_cache_t
+#include "process_utils.h"  // for process_pages, set_requests
 
 int main()
 {

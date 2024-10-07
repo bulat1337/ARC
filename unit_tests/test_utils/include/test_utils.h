@@ -26,7 +26,7 @@ namespace test_utils
 	};
 
 	template <typename PageType>
-	std::string get_result(std::string_view file_name, test_utils::Cache_type cache_type)
+	size_t get_result(std::string_view file_name, test_utils::Cache_type cache_type)
 	{
 		std::ifstream test_data;
 
@@ -71,10 +71,10 @@ namespace test_utils
 				throw std::logic_error("Unknown cache type\n");
 		}
 
-		return std::to_string(hit_amount);
+		return hit_amount;
 	}
 
-	inline std::string get_answer(std::string_view file_name)
+	inline size_t get_answer(std::string_view file_name)
 	{
 		std::ifstream answer_file;
 
@@ -82,7 +82,7 @@ namespace test_utils
 
 		answer_file.open(file_name);
 
-		std::string answer;
+		size_t answer;
 		answer_file >> answer;
 
 		return answer;
@@ -97,43 +97,14 @@ namespace test_utils
 
 		test_path.replace_extension(".dat");
 
-		std::string answer;
-		std::string result;
+		size_t answer;
+		size_t result;
 
-		try
-		{
-			result = get_result<PageType>(test_path.string(), cache_type);
-		}
-		catch (const std::runtime_error& exception)
-		{
-			std::cerr << exception.what() << '\n';
-			FAIL() << "Error during test result processing: " << test_name;
-		}
-		catch (const std::logic_error& exception)
-		{
-			std::cerr << exception.what() << '\n';
-			FAIL() << "Logic error during cache processing: " << test_name;
-		}
-		catch (...)
-		{
-			FAIL();
-		}
+		result = get_result<PageType>(test_path.string(), cache_type);
 
 		test_path.replace_extension(".ans");
 
-		try
-		{
-			answer = get_answer(test_path.string());
-		}
-		catch (const std::runtime_error& exception)
-		{
-			std::cerr << exception.what() << '\n';
-			FAIL() << "Error during answer file loading: " << test_name;
-		}
-		catch (...)
-		{
-			FAIL();
-		}
+		answer = get_answer(test_path.string());
 
 		EXPECT_EQ(result, answer);
 	}

@@ -1,11 +1,9 @@
-#include <fstream>
-#include <format>
-#include <string>
+#include <gtest/gtest.h>  // for Test, TestInfo (ptr only), TEST
 
-#include <gtest/gtest.h>
+#include <string>         // for basic_string
+#include <string_view>    // for basic_string_view
 
-#include "arc.h"
-#include "test_utils.h"
+#include "test_utils.h"   // for run_test, Cache_type
 
 TEST(LFU_pattern, cache_1_data_11)
 {

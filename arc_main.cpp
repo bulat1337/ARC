@@ -1,7 +1,8 @@
-#include <iostream>
+#include <stddef.h>         // for size_t
+#include <iostream>         // for basic_istream, basic_ostream, cin, operat...
 
-#include "arc.h"
-#include "process_utils.h"
+#include "arc.h"            // for arc_t
+#include "process_utils.h"  // for process_pages
 
 int main()
 {
