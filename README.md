@@ -4,6 +4,36 @@
 
 ARC implementation
 
+## Installing dependencies
+
+1) To let Conan try to guess the profile, based on the current operating system and installed tools, please run:
+```
+conan profile detect --force
+```
+
+2) Get the location of the default profile using:
+```
+conan profile path default
+```
+Then open and edit the file and set compiler.cppstd=gnu17 to gnu20.
+
+3) Create virtual environment:
+```
+python3 -m venv .venv && source .venv/bin/activate && pip3 install conan
+```
+
+4) Run conan:
+```
+conan install . --output-folder=third_party --build=missing
+```
+
+5) Build the project:
+```
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=./third_party/conan_toolchain.cmake
+cmake --build build
+```
+
+
 ## How to use
 
 ### To use in your project
