@@ -7,7 +7,6 @@
 #include <list>
 #include <unordered_map>
 #include <algorithm>
-#include <format>
 
 #include "log.h"
 

@@ -6,7 +6,6 @@
 #include <list>
 #include <vector>
 #include <algorithm>
-#include <format>
 
 #include "log.h"
 
