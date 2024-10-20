@@ -2,7 +2,6 @@
 #define TEST_UTILS_H
 
 #include <fstream>
-#include <format>
 #include <string>
 #include <iostream>
 #include <vector>
@@ -32,7 +31,7 @@ namespace test_utils
 
 		test_data.exceptions(std::ifstream::badbit | std::ifstream::failbit);
 
-		test_data.open(file_name);
+		test_data.open(std::string(file_name));
 
 		size_t cache_size  = 0;
 		size_t page_amount = 0;
@@ -80,7 +79,7 @@ namespace test_utils
 
 		answer_file.exceptions(std::ifstream::badbit | std::ifstream::failbit);
 
-		answer_file.open(file_name);
+		answer_file.open(std::string(file_name));
 
 		size_t answer;
 		answer_file >> answer;
