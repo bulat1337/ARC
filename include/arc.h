@@ -17,20 +17,129 @@ template <typename T>
 class arc_t
 {
   private:
-	const size_t sz_ = 0;
-
-	std::list<T> LRU_cache_;
-	std::list<T> LFU_cache_;
-	std::list<T> LRU_ghost_cache_;
-	std::list<T> LFU_ghost_cache_;
-
 	using ListIt = typename std::list<T>::iterator;
 	using HashIt = typename std::unordered_map<T, ListIt>::iterator;
 
-	std::unordered_map<T, ListIt> LRU_hash_;
-	std::unordered_map<T, ListIt> LFU_hash_;
-	std::unordered_map<T, ListIt> LRU_ghost_hash_;
-	std::unordered_map<T, ListIt> LFU_ghost_hash_;
+  private:
+	class cache_t
+	{
+	  private:
+	  	arc_t& outer_;
+
+	  	std::list<T> cache_;
+		std::unordered_map<T, ListIt> hash_;
+
+	  public:
+		cache_t(arc_t& outer): outer_(outer) {}
+
+	  	void add(const T& id)
+		{
+			cache_.push_front(id);
+			hash_.insert({id, cache_.begin()});
+		}
+
+		bool lookup_update(const T& id)
+		{
+			if (auto hit = hash_.find(id); hit != hash_.end())
+			{
+				MSG("HIT: found in LRU\n");
+
+				outer_.handle_hit(id, hit, cache_, hash_);
+
+				return true;
+			}
+
+			return false;
+		}
+
+		bool empty() const { return cache_.empty(); }
+
+		size_t size() const { return cache_.size(); }
+
+		T remove_oldest()
+		{
+			T removed = cache_.back();
+			cache_.pop_back();
+			hash_.erase(removed);
+
+			return removed;
+		}
+
+		void dump() const
+		{
+			std::copy(	  std::begin(cache_), std::end(cache_)
+						, std::ostream_iterator<T>(std::clog, " "));
+
+			std::clog << '\n';
+		}
+	};
+
+	class ghost_t
+	{
+	  private:
+		arc_t& outer_;
+
+	  	std::list<T> cache_;
+		std::unordered_map<T, ListIt> hash_;
+
+		const bool inc_coeff_;
+
+	  public:
+		ghost_t(arc_t& outer, bool inc_coeff = false):
+			  outer_(outer)
+			, inc_coeff_(inc_coeff) {}
+
+	  	template <typename F>
+		bool lookup_update(const T& id, F slow_get_page)
+		{
+			if (auto hit = hash_.find(id); hit != hash_.end())
+			{
+				MSG("MISS: found in LRU_ghost\n");
+
+				outer_.handle_ghost_hit(id, hit, slow_get_page, cache_, hash_, inc_coeff_);
+
+				return true;
+			}
+
+			return false;
+		}
+
+		size_t size() const { return cache_.size(); }
+
+		bool contains(const T& id) const { return hash_.contains(id); }
+
+		void emplace_front(const T& page)
+		{
+			cache_.emplace_front(page);
+			hash_.emplace(std::make_pair(page, cache_.begin()));
+		}
+
+		T remove_oldest()
+		{
+			T removed = cache_.back();
+			cache_.pop_back();
+			hash_.erase(removed);
+
+			return removed;
+		}
+
+		void dump() const
+		{
+			std::copy(	  std::begin(cache_), std::end(cache_)
+						, std::ostream_iterator<T>(std::clog, " "));
+
+			std::clog << '\n';
+		}
+	};
+
+  private:
+	const size_t sz_ = 0;
+
+	cache_t LRU_{*this};
+	cache_t LFU_{*this};
+
+	ghost_t LRU_ghost_{*this, true};
+	ghost_t LFU_ghost_{*this, false};
 
 	size_t coeff_ = 0;
 
@@ -38,64 +147,42 @@ class arc_t
 	{
 		std::clog << "coeff_: " << coeff_ << '\n';
 		std::clog << "LRU_cache_: ";
-		std::copy(	std::begin(LRU_cache_), std::end(LRU_cache_)
-					, std::ostream_iterator<T>(std::clog, " "));
-		std::clog << '\n';
+		LRU_.dump();
 
 		std::clog << "LFU_cache_: ";
-		std::copy(	std::begin(LFU_cache_), std::end(LFU_cache_)
-					, std::ostream_iterator<T>(std::clog, " "));
-		std::clog << '\n';
+		LFU_.dump();
 
 		std::clog << "LRU_ghost_cache_: ";
-		std::copy(	std::begin(LRU_ghost_cache_), std::end(LRU_ghost_cache_)
-					, std::ostream_iterator<T>(std::clog, " "));
-		std::clog << '\n';
+		LRU_ghost_.dump();
 
 		std::clog << "LFU_ghost_cache_: ";
-		std::copy(	std::begin(LFU_ghost_cache_), std::end(LFU_ghost_cache_)
-					, std::ostream_iterator<T>(std::clog, " "));
-		std::clog << "\n";
+		LFU_ghost_.dump();
 	}
 
-	static T remove_oldest(	  std::list<T>& cache
-								, std::unordered_map<T, ListIt>& hash)
+	static void shift_cache(cache_t& cache, ghost_t& ghost)
 	{
-		T removed = cache.back();
-		cache.pop_back();
-		hash.erase(removed);
+		T removed = cache.remove_oldest();
 
-		return removed;
-	}
-
-	static void shift_cache(	  std::list<T>& cache
-								, std::unordered_map<T, ListIt>& hash
-								, std::list<T>& ghost_cache
-								, std::unordered_map<T, ListIt>& ghost_hash)
-	{
-		T removed = remove_oldest(cache, hash);
-
-		ghost_cache.emplace_front(removed);
-		ghost_hash.emplace(std::make_pair(removed, ghost_cache.begin()));
+		ghost.emplace_front(removed);
 	}
 
 	void shift_LRU()
 	{
-		shift_cache(LRU_cache_, LRU_hash_, LRU_ghost_cache_, LRU_ghost_hash_);
+		shift_cache(LRU_, LRU_ghost_);
 	}
 
 	void shift_LFU()
 	{
-		shift_cache(LFU_cache_, LFU_hash_, LFU_ghost_cache_, LFU_ghost_hash_);
+		shift_cache(LFU_, LFU_ghost_);
 	}
 
 	void replace(const T& id)
 	{
-		bool in_LFU_ghost = LFU_ghost_hash_.contains(id);
+		bool in_LFU_ghost = LFU_ghost_.contains(id);
 
-		if (	!LRU_cache_.empty() &&
-					( 	(in_LFU_ghost && LRU_cache_.size() == coeff_) ||
-						(LRU_cache_.size() > coeff_) ) )
+		if (	!LRU_.empty() &&
+				( 	(in_LFU_ghost && LRU_.size() == coeff_) ||
+					(LRU_.size() > coeff_) ) )
 		{
 			shift_LRU();
 		}
@@ -112,24 +199,23 @@ class arc_t
 		cache.erase(hit->second);
 		hash.erase(id);
 
-		LFU_cache_.push_front(id);
-		LFU_hash_.insert({id, LFU_cache_.begin()});
+		LFU_.add(id);
 	}
 
 	template <typename F>
 	void handle_ghost_hit(	  const T& id, HashIt hit, F slow_get_page
-								, std::list<T>& ghost_cache
-								, std::unordered_map<T, ListIt>& ghost_hash
-								, bool inc_coeff)
+							, std::list<T>& ghost_cache
+							, std::unordered_map<T, ListIt>& ghost_hash
+							, bool inc_coeff)
 	{
 		if (inc_coeff)
 		{
-			size_t delta = std::max(1ul, LFU_ghost_cache_.size() / LRU_ghost_cache_.size());
+			size_t delta = std::max(1ul, LFU_ghost_.size() / LRU_ghost_.size());
 			coeff_ = std::min(coeff_ + delta, sz_);
 		}
 		else
 		{
-			size_t delta = std::max(1ul, LRU_ghost_cache_.size() / LFU_ghost_cache_.size());
+			size_t delta = std::max(1ul, LRU_ghost_.size() / LFU_ghost_.size());
 			coeff_ = (coeff_ > delta) ? (coeff_ - delta) : 0;
 		}
 
@@ -139,17 +225,16 @@ class arc_t
 		ghost_hash.erase(id);
 
 		T page = slow_get_page(id);
-		LFU_cache_.push_front(id);
-		LFU_hash_.insert({page, LFU_cache_.begin()});
+		LFU_.add(page);
 	}
 
 	void handle_full_LRU(const T& id)
 	{
-		if (LRU_cache_.size() < sz_)
+		if (LRU_.size() < sz_)
 		{
 			MSG("LRU is not full yet.\n");
 
-			remove_oldest(LRU_ghost_cache_, LRU_ghost_hash_);
+			LRU_ghost_.remove_oldest();
 
 			replace(id);
 		}
@@ -157,18 +242,18 @@ class arc_t
 		{
 			MSG("LRU is full.\n");
 
-			remove_oldest(LRU_cache_, LRU_hash_);
+			LRU_.remove_oldest();
 		}
 	}
 
 	void handle_full_cache(const T& id)
 	{
-		if (	LRU_cache_.size() + LRU_ghost_cache_.size()
-					+ LFU_cache_.size() + LFU_ghost_cache_.size() == 2 * sz_)
+		if (	LRU_.size() + LRU_ghost_.size() +
+				LFU_.size() + LFU_ghost_.size() == 2 * sz_)
 		{
 			MSG("Overall size is double the set size\n");
 
-			remove_oldest(LFU_ghost_cache_, LFU_ghost_hash_);
+			LFU_ghost_.remove_oldest();
 		}
 
 		replace(id);
@@ -177,15 +262,15 @@ class arc_t
 	template <typename F>
 	void handle_cache_miss(const T& id, F slow_get_page)
 	{
-		if (LRU_cache_.size() + LRU_ghost_cache_.size() == sz_)
+		if (LRU_.size() + LRU_ghost_.size() == sz_)
 		{
 			MSG("Overall LRU is full.\n");
 
 			handle_full_LRU(id);
 		}
-		else if (	(LRU_cache_.size() + LRU_ghost_cache_.size() < sz_) &&
-					(	LRU_cache_.size() + LRU_ghost_cache_.size()
-						+ LFU_cache_.size() + LFU_ghost_cache_.size() >= sz_) )
+		else if (	(LRU_.size() + LRU_ghost_.size() < sz_) &&
+					(	LRU_.size() + LRU_ghost_.size() +
+						LFU_.size() + LFU_ghost_.size() >= sz_) )
 		{
 			MSG("LRU is not full but overall size is set size.\n");
 
@@ -193,9 +278,7 @@ class arc_t
 		}
 
 		T page = slow_get_page(id);
-		LRU_cache_.push_front(page);
-
-		LRU_hash_.insert({id, LRU_cache_.begin()});
+		LRU_.add(page);
 	}
 
   public:
@@ -207,42 +290,13 @@ class arc_t
 	{
 		LOG("Processing {}\n", id);
 
-		if (auto hit = LRU_hash_.find(id); hit != LRU_hash_.end())
-		{
-			MSG("HIT: found in LRU\n");
+		if (LRU_.lookup_update(id)) return true;
 
-			handle_hit(id, hit, LRU_cache_, LRU_hash_);
+		if (LFU_.lookup_update(id)) return true;
 
-			return true;
-		}
+		if (LRU_ghost_.lookup_update(id, slow_get_page)) return false;
 
-		if (auto hit = LFU_hash_.find(id); hit != LFU_hash_.end())
-		{
-			MSG("HIT: found in LFU\n");
-
-			handle_hit(id, hit, LFU_cache_, LFU_hash_);
-
-			return true;
-		}
-
-		if (auto hit = LRU_ghost_hash_.find(id); hit != LRU_ghost_hash_.end())
-		{
-			MSG("MISS: found in LRU_ghost\n");
-
-			handle_ghost_hit(id, hit, slow_get_page, LRU_ghost_cache_, LRU_ghost_hash_, true);
-
-			return false;
-		}
-
-		if (auto hit = LFU_ghost_hash_.find(id); hit != LFU_ghost_hash_.end())
-		{
-			MSG("MISS: found in LFU_ghost\n");
-
-			handle_ghost_hit(id, hit, slow_get_page, LFU_ghost_cache_, LFU_ghost_hash_, false);
-
-			return false;
-		}
-
+		if (LFU_ghost_.lookup_update(id, slow_get_page)) return false;
 
 		MSG("MISS: New element.\n");
 
