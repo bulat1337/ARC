@@ -9,6 +9,7 @@
 #include <algorithm>
 
 #include "log.h"
+#include "detail.h"
 
 namespace arc
 {
@@ -21,59 +22,6 @@ class arc_t
 	using HashIt = typename std::unordered_map<T, ListIt>::iterator;
 
   private:
-	class cache_t
-	{
-	  private:
-	  	arc_t& outer_;
-
-	  	std::list<T> cache_;
-		std::unordered_map<T, ListIt> hash_;
-
-	  public:
-		cache_t(arc_t& outer): outer_(outer) {}
-
-	  	void add(const T& id)
-		{
-			cache_.push_front(id);
-			hash_.insert({id, cache_.begin()});
-		}
-
-		bool lookup_update(const T& id)
-		{
-			if (auto hit = hash_.find(id); hit != hash_.end())
-			{
-				MSG("HIT: found in LRU\n");
-
-				outer_.handle_hit(id, hit, cache_, hash_);
-
-				return true;
-			}
-
-			return false;
-		}
-
-		bool empty() const { return cache_.empty(); }
-
-		size_t size() const { return cache_.size(); }
-
-		T remove_oldest()
-		{
-			T removed = cache_.back();
-			cache_.pop_back();
-			hash_.erase(removed);
-
-			return removed;
-		}
-
-		void dump() const
-		{
-			std::copy(	  std::begin(cache_), std::end(cache_)
-						, std::ostream_iterator<T>(std::clog, " "));
-
-			std::clog << '\n';
-		}
-	};
-
 	class ghost_t
 	{
 	  private:
@@ -135,8 +83,8 @@ class arc_t
   private:
 	const size_t sz_ = 0;
 
-	cache_t LRU_{*this};
-	cache_t LFU_{*this};
+	detail::lfu_t<T> LFU_;
+	detail::lru_t<T> LRU_{LFU_};
 
 	ghost_t LRU_ghost_{*this, true};
 	ghost_t LFU_ghost_{*this, false};
@@ -159,7 +107,7 @@ class arc_t
 		LFU_ghost_.dump();
 	}
 
-	static void shift_cache(cache_t& cache, ghost_t& ghost)
+	static void shift_cache(detail::cache_base<T>& cache, ghost_t& ghost)
 	{
 		T removed = cache.remove_oldest();
 
@@ -190,16 +138,6 @@ class arc_t
 		{
 			shift_LFU();
 		}
-	}
-
-	void handle_hit(  const T& id, HashIt hit
-					, std::list<T>& cache
-					, std::unordered_map<T, ListIt>& hash)
-	{
-		cache.erase(hit->second);
-		hash.erase(id);
-
-		LFU_.add(id);
 	}
 
 	template <typename F>
@@ -248,8 +186,8 @@ class arc_t
 
 	void handle_full_cache(const T& id)
 	{
-		if (	LRU_.size() + LRU_ghost_.size() +
-				LFU_.size() + LFU_ghost_.size() == 2 * sz_)
+		if (LRU_.size() + LRU_ghost_.size() +
+			LFU_.size() + LFU_ghost_.size() == 2 * sz_)
 		{
 			MSG("Overall size is double the set size\n");
 
@@ -282,8 +220,7 @@ class arc_t
 	}
 
   public:
-	arc_t(const size_t sz) :
-		sz_(sz) {}
+	arc_t(const size_t sz): sz_(sz) {}
 
 	template <typename F>
 	bool lookup_update(const T& id, F slow_get_page)
