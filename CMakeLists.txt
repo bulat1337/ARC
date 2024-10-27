@@ -19,7 +19,6 @@ set(ENABLE_BD_TESTS ${ENABLE_BD_TESTS} CACHE BOOL "Enable Big Data Tests" FORCE)
 
 option(ENABLE_ARC_BD_TESTS "Big data tests for arc.x" OFF)
 option(ENABLE_PERFECT_BD_TESTS "Big data tests for perfect.x" OFF)
-option(DEBUG "Debug version" OFF)
 
 set(RELEASE_COMPILE_OPTIONS
 	-O2
@@ -100,7 +99,8 @@ if(BUILD_ARC)
 		target_compile_definitions(arc.x PRIVATE ENABLE_LOGGING)
 	endif()
 
-	if(DEBUG)
+	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+		target_compile_definitions(arc.x PRIVATE DEBUG)
 		target_compile_options(arc.x PRIVATE ${DEBUG_COMPILE_OPTIONS})
 
 		target_link_options(arc.x PRIVATE
@@ -122,7 +122,8 @@ if(BUILD_PERFECT)
 		target_compile_definitions(perfect.x PRIVATE ENABLE_LOGGING)
 	endif()
 
-	if(DEBUG)
+	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+		target_compile_definitions(perfect.x PRIVATE DEBUG)
 		target_compile_options(perfect.x PRIVATE ${DEBUG_COMPILE_OPTIONS})
 
 		target_link_options(perfect.x PRIVATE
@@ -132,6 +133,3 @@ if(BUILD_PERFECT)
 		target_compile_options(perfect.x PRIVATE ${RELEASE_COMPILE_OPTIONS})
 	endif()
 endif()
-
-
-

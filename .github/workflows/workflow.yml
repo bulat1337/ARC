@@ -1,0 +1,91 @@
+name: ARC CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-test:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        compiler: [gcc-11, gcc, clang]
+        build_type: [Release, Debug]
+        exclude:
+          - os: macos-latest
+            compiler: gcc-11
+          - os: macos-latest
+            compiler: gcc
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Set up Python and install Conan globally
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      - run: |
+          python -m pip install --upgrade pip
+          pip install conan
+
+      - name: Create default Conan profile
+        run: conan profile detect --force
+
+      - name: Install dependencies with Conan
+        run: |
+          if [ "${{ matrix.build_type }}" == "Debug" ]; then
+            conan install . --output-folder=third_party --build=missing -s build_type=Debug
+          else
+            conan install . --output-folder=third_party --build=missing -s build_type=Release
+          fi
+
+      # Ubuntu compiler setup
+      - name: Set up compiler (Ubuntu GCC 11)
+        if: matrix.os == 'ubuntu-latest' && matrix.compiler == 'gcc-11'
+        run: |
+          sudo apt update
+          sudo apt install g++-11
+        env:
+          CC: gcc-11
+          CXX: g++-11
+
+      - name: Set up compiler (Ubuntu Clang)
+        if: matrix.os == 'ubuntu-latest' && matrix.compiler == 'clang'
+        run: |
+          sudo apt update
+          sudo apt install clang
+        env:
+          CC: clang
+          CXX: clang++
+
+      # macOS compiler setup (use default Clang)
+      - name: Set up compiler (macOS Clang)
+        if: matrix.os == 'macos-latest'
+        run: echo "Using default Clang compiler on macOS"
+        env:
+          CC: clang
+          CXX: clang++
+
+      - name: Configure CMake
+        run: |
+          if [ "${{ matrix.os }}" == "macos-latest" ]; then
+            cmake -B build \
+              -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+              -DCMAKE_TOOLCHAIN_FILE=./third_party/conan_toolchain.cmake \
+              -DCMAKE_CXX_FLAGS="-stdlib=libc++"
+          else
+            cmake -B build \
+              -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+              -DCMAKE_TOOLCHAIN_FILE=./third_party/conan_toolchain.cmake
+          fi
+
+      - name: Build with CMake
+        run: cmake --build build
+
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure
